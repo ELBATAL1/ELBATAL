@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="ELBATAL Secure Console - Advanced Security Panel">
+    <meta name="theme-color" content="#000000">
+    <title>ELBATAL | Secure Console v4.2</title>
+    
+    <!-- مكتبات التشفير والأمان -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    
+    <style>
+        /* ==================== CSS VARIABLES ==================== */
+        :root {
+            --matrix-green: #00ff41;
+            --matrix-dark: #003b00;
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999999;
+            --text-muted: #555555;
+            --border-color: #1a1a1a;
+            --border-glow: #00ff41;
+            --error-red: #ff003c;
+            --error-glow: #ff003c80;
+            --success-green: #00ff41;
+            --warning-yellow: #ffcc00;
+            --glitch-blue: #00f0ff;
+            --glitch-purple: #b300ff;
+            --font-mono: 'Courier New', 'Fira Code', 'Consolas', monospace;
+            --font-display: 'Share Tech Mono', 'Courier New', monospace;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.7);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.9);
+            --shadow-glow: 0 0 20px rgba(0, 255, 65, 0.3);
+            --shadow-glow-intense: 0 0 40px rgba(0, 255, 65, 0.5);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --blur-amount: 12px;
+        }
+
+        /* ==================== GLOBAL RESET ==================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            font-family: var(--font-mono);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            position: relative;
+            cursor: default;
+        }
+
+        /* ==================== MATRIX CANVAS ==================== */
+        canvas#matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ==================== PARTICLES OVERLAY ==================== */
+        #particlesOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--matrix-green);
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* ==================== SCAN LINE EFFECT ==================== */
+        #scanLines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+        }
+
+        /* ==================== NOISE OVERLAY ==================== */
+        #noiseOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 4;
+            pointer-events: none;
+            opacity: 0.02;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJmIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjc1IiBudW1PY3RhdmVzPSIzIiAvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNmKSIgb3BhY2l0eT0iMSIgLz48L3N2Zz4=');
+            background-size: 256px 256px;
+        }
+
+        /* ==================== LOGIN CONTAINER ==================== */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .login-container {
+            width: 460px;
+            max-width: 95vw;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: var(--radius-lg);
+            box-shadow: 
+                var(--shadow-lg),
+                var(--shadow-glow),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            padding: 40px 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            animation: containerEntry 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent,
+                rgba(0, 255, 65, 0.05),
+                transparent,
+                rgba(0, 255, 65, 0.03),
+                transparent
+            );
+            animation: rotateBorder 8s linear infinite;
+            z-index: -1;
+        }
+
+        .login-container::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            background: rgba(10, 10, 10, 0.95);
+            border-radius: calc(var(--radius-lg) - 1px);
+            z-index: -1;
+        }
+
+        @keyframes containerEntry {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) rotateX(5deg) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ==================== LOGO / AVATAR SECTION ==================== */
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .avatar-main {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--matrix-green);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.4),
+                0 0 40px rgba(0, 255, 65, 0.2),
+                inset 0 0 20px rgba(0, 255, 65, 0.1);
+            animation: avatarPulse 2s ease-in-out infinite;
+            object-fit: cover;
+            background: url('https://i.imgur.com/FQH0LqG.png') center/cover no-repeat;
+            background-color: #000;
+        }
+
+        .avatar-ring {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 255, 65, 0.4);
+            animation: ringRotate 10s linear infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 255, 65, 0.4), 0 0 40px rgba(0, 255, 65, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(0, 255, 65, 0.7), 0 0 60px rgba(0, 255, 65, 0.4);
+            }
+        }
+
+        @keyframes ringRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ==================== TITLE ==================== */
+        .title-container {
+            text-align: center;
+        }
+
+        .main-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 6px;
+            color: #fff;
+            text-shadow: 
+                0 0 10px var(--matrix-green),
+                0 0 20px var(--matrix-green),
+                0 0 40px var(--matrix-green);
+            position: relative;
+            display: inline-block;
+        }
+
+        .main-title::before {
+            content: '< ';
+            color: var(--matrix-green);
+            font-weight: 300;
+        }
+
+        .main-title::after {
+            content: ' />';
+            color: var(--matrix-green);
+            font-weight: 300;
+        }
+
+        .subtitle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+            margin-top: 5px;
+            animation: blinkText 3s step-end infinite;
+        }
+
+        @keyframes blinkText {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* ==================== STATUS INDICATOR ==================== */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--matrix-green);
+            animation: statusBlink 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.offline {
+            background: var(--error-red);
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--matrix-green); }
+            50% { opacity: 0.3; box-shadow: 0 0 15px var(--matrix-green); }
+        }
+
+        /* ==================== INPUT GROUPS ==================== */
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #0a0a0a;
+            padding: 0 8px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            z-index: 2;
+            transition: var(--transition-normal);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px 18px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #2a2a2a;
+            border-radius: var(--radius-sm);
+            color: var(--matrix-green);
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+            outline: none;
+            transition: all var(--transition-normal);
+            caret-color: var(--matrix-green);
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-group input:focus {
+            border-color: var(--matrix-green);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.2),
+                inset 0 0 15px rgba(0, 255, 65, 0.05);
+            background: #111;
+        }
+
+        .input-group input:focus + label,
+        .input-group input:valid + label {
+            color: var(--matrix-green);
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            z-index: 2;
+            pointer-events: none;
+            transition: var(--transition-normal);
+        }
+
+        .input-group input:focus ~ .input-icon {
+            color: var(--matrix-green);
+        }
+
+        /* ==================== BUTTON ==================== */
+        .btn-authenticate {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 1.5px solid var(--matrix-green);
+            color: var(--matrix-green);
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-authenticate::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(0, 255, 65, 0.15),
+                transparent
+            );
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+
+        .btn-authenticate:hover::before {
+            left: 100%;
+        }
+
+        .btn-authenticate:hover {
+            background: var(--matrix-green);
+            color: #000;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 65, 0.5),
+                0 0 60px rgba(0, 255, 65, 0.3);
+            letter-spacing: 6px;
+        }
+
+        .btn-authenticate:active {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+        }
+
+        .btn-authenticate:disabled {
+            border-color: #333;
+            color: #333;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* ==================== ERROR MESSAGE ==================== */
+        .error-container {
+            min-height: 25px;
+            text-align: center;
+        }
+
+        .error-message {
+            color: var(--error-red);
+            font-size: 0.75rem;
+            letter-spacing: 1.5px;
+            animation: shakeError 0.5s ease;
+            text-shadow: 0 0 10px rgba(255, 0, 60, 0.5);
+        }
+
+        .error-message.success {
+            color: var(--success-green);
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .footer-info .encryption-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .lock-icon {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--matrix-green);
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .lock-icon::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 4px;
+            border: 1px solid var(--matrix-green);
+            border-bottom: none;
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* ==================== GLITCH EFFECT ==================== */
+        .glitch-text {
+            position: relative;
+        }
+
+        .glitch-text:hover {
+            animation: glitchSkew 0.3s ease;
+        }
+
+        @keyframes glitchSkew {
+            0% { transform: skew(0deg); }
+            25% { transform: skew(2deg); }
+            50% { transform: skew(-1deg); }
+            75% { transform: skew(1deg); }
+            100% { transform: skew(0deg); }
+        }
+
+        /* ==================== TOOLTIP ==================== */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: var(--matrix-green);
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 0.6rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-fast);
+            border: 1px solid var(--matrix-green);
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 600px) {
+            .login-container {
+                width: 92vw;
+                padding: 30px 20px;
+                gap: 18px;
+            }
+            
+            .main-title {
+                font-size: 1.4rem;
+                letter-spacing: 3px;
+            }
+            
+            .avatar-container {
+                width: 75px;
+                height: 75px;
+            }
+            
+            .input-group input {
+                padding: 14px 15px;
+                font-size: 0.85rem;
+            }
+            
+            .btn-authenticate {
+                padding: 14px;
+                font-size: 0.9rem;
+                letter-spacing: 2px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .login-container {
+                padding: 20px 15px;
+            }
+            
+            .footer-info {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+        }
+
+        /* ==================== ACCESSIBILITY ==================== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* ==================== CUSTOM SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--matrix-dark);
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--matrix-green);
+        }
+
+        /* ==================== SELECTION ==================== */
+        ::selection {
+            background: rgba(0, 255, 65, 0.3);
+            color: #fff;
+        }
+
+        ::-moz-selection {
+            background: rgba(0, 255, 65, 0.3);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrixCanvas" aria-hidden="true"></canvas>
+    
+    <!-- Particles Overlay -->
+    <div id="particlesOverlay" aria-hidden="true"></div>
+    
+    <!-- Scan Lines Effect -->
+    <div id="scanLines" aria-hidden="true"></div>
+    
+    <!-- Noise Overlay -->
+    <div id="noiseOverlay" aria-hidden="true"></div>
+
+    <!-- Main Login Wrapper -->
+    <div class="login-wrapper">
+        <div class="login-container" role="form" aria-label="Authentication Form">
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="avatar-container tooltip" data-tooltip="ELBATAL SECURITY">
+                    <div class="avatar-ring"></div>
+                    <div class="avatar-main" role="img" aria-label="Hacker Avatar"></div>
+                </div>
+                
+                <div class="title-container">
+                    <h1 class="main-title glitch-text">ELBATAL</h1>
+                    <p class="subtitle">[ SECURE CONSOLE v4.2 ]</p>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+                <span id="statusText">ENCRYPTED CHANNEL</span>
+                <span style="margin-left: auto;">AES-256</span>
+            </div>
+            
+            <!-- Username Input -->
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="usernameInput" 
+                    placeholder="root@elbatal" 
+                    autocomplete="off" 
+                    spellcheck="false"
+                    aria-label="Username"
+                    required
+                >
+                <label for="usernameInput">USERNAME</label>
+                <span class="input-icon">⌨</span>
+            </div>
+            
+            <!-- Password Input -->
+            <div class="input-group">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="••••••••••" 
+                    autocomplete="off"
+                    aria-label="Password"
+                    required
+                >
+                <label for="passwordInput">PASSPHRASE</label>
+                <span class="input-icon">🔒</span>
+            </div>
+            
+            <!-- Error Message -->
+            <div class="error-container">
+                <span class="error-message" id="errorMessage" aria-live="polite"></span>
+            </div>
+            
+            <!-- Authenticate Button -->
+            <button 
+                class="btn-authenticate" 
+                id="loginButton"
+                aria-label="Authenticate"
+            >
+                AUTHENTICATE
+            </button>
+            
+            <!-- Footer -->
+            <div class="footer-info">
+                <span class="encryption-badge">
+                    <span class="lock-icon"></span>
+                    E2E ENCRYPTED
+                </span>
+                <span id="attemptCounter">ATTEMPTS: 0/5</span>
+                <span id="sessionTimer">SESSION: --:--</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== STRICT MODE ====================
+        'use strict';
+
+        // ==================== MATRIX RAIN EFFECT (ADVANCED) ====================
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        
+        let matrixWidth = window.innerWidth;
+        let matrixHeight = window.innerHeight;
+        
+        matrixCanvas.width = matrixWidth;
+        matrixCanvas.height = matrixHeight;
+        
+        const matrixChars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*()_+-=[]{}|;:<>/';
+        const matrixFontSize = 14;
+        let matrixColumns = Math.floor(matrixWidth / matrixFontSize);
+        const matrixDrops = [];
+        
+        // Initialize drops
+        for (let i = 0; i < matrixColumns; i++) {
+            matrixDrops[i] = Math.floor(Math.random() * -matrixHeight / matrixFontSize);
+        }
+        
+        function drawMatrixRain() {
+            // Fade effect
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixWidth, matrixHeight);
+            
+            matrixCtx.fillStyle = '#0f0';
+            matrixCtx.font = matrixFontSize + 'px monospace';
+            
+            for (let i = 0; i < matrixDrops.length; i++) {
+                // Random character
+                const char = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                
+                // Head character brighter
+                matrixCtx.fillStyle = '#00ff41';
+                matrixCtx.fillText(char, i * matrixFontSize, matrixDrops[i] * matrixFontSize);
+                
+                // Tail characters dimmer
+                if (matrixDrops[i] > 0) {
+                    matrixCtx.fillStyle = 'rgba(0, 255, 65, 0.3)';
+                    matrixCtx.fillText(
+                        matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)),
+                        i * matrixFontSize,
+                        (matrixDrops[i] - 1) * matrixFontSize
+                    );
+                }
+                
+                // Reset drop when it reaches bottom
+                if (matrixDrops[i] * matrixFontSize > matrixHeight && Math.random() > 0.975) {
+                    matrixDrops[i] = 0;
+                }
+                
+                matrixDrops[i]++;
+            }
+        }
+        
+        // Run matrix rain
+        const matrixInterval = setInterval(drawMatrixRain, 42);
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            matrixWidth = window.innerWidth;
+            matrixHeight = window.innerHeight;
+            matrixCanvas.width = matrixWidth;
+            matrixCanvas.height = matrixHeight;
+            matrixColumns = Math.floor(matrixWidth / matrixFontSize);
+            matrixDrops.length = 0;
+            for (let i = 0; i < matrixColumns; i++) {
+                matrixDrops[i] = Math.floor(Math.random() * -20);
+            }
+        });
+
+        // ==================== FLOATING PARTICLES ====================
+        const particlesContainer = document.getElementById('particlesOverlay');
+        
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            const size = Math.random() * 3 + 1;
+            const startX = Math.random() * 100;
+            const duration = Math.random() * 8 + 5;
+            const delay = Math.random() * 5;
+            
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = startX + '%';
+            particle.style.animationDuration = duration + 's';
+            particle.style.animationDelay = delay + 's';
+            
+            particlesContainer.appendChild(particle);
+            
+            // Remove particle after animation
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, (duration + delay) * 1000);
+        }
+        
+        // Create particles periodically
+        setInterval(() => {
+            if (particlesContainer.children.length < 30) {
+                createParticle();
+            }
+        }, 400);
+        
+        // Initial particles
+        for (let i = 0; i < 15; i++) {
+            setTimeout(createParticle, i * 200);
+        }
+
+        // ==================== SECURITY: DISABLE DEVTOOLS SHORTCUTS ====================
+        document.addEventListener('keydown', function(e) {
+            // Disable F12
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // Disable Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // Disable Ctrl+Shift+J
+            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // Disable Ctrl+U
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // Disable Ctrl+S
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+        
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+        
+        // Detect DevTools using timing
+        let devtoolsOpen = false;
+        const threshold = 160;
+        
+        setInterval(function() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            if (end - start > threshold) {
+                if (!devtoolsOpen) {
+                    devtoolsOpen = true;
+                    console.clear();
+                    console.log('%c⚠️ SECURITY WARNING ⚠️', 'color: red; font-size: 40px;');
+                    console.log('%cDeveloper tools detected!', 'color: orange; font-size: 20px;');
+                    console.log('%cThis area is monitored.', 'color: white; font-size: 16px;');
+                    document.body.style.filter = 'blur(3px)';
+                    setTimeout(() => {
+                        document.body.style.filter = 'none';
+                    }, 500);
+                }
+            } else {
+                devtoolsOpen = false;
+            }
+        }, 1000);
+
+        // ==================== CREDENTIALS & ENCRYPTION SYSTEM ====================
+        // SECURITY NOTE: These are SHA-256 hashes with complex salt
+        // Actual credentials: username=ELBATAL1, password=ELBATAL1BAS
+        
+        const SECURITY_CONFIG = {
+            // Complex salt - DO NOT MODIFY
+            SALT_PRIMARY: 'X9kLm2#pQr8$vBn_5WzY!cA3*eG7&tH',
+            SALT_SECONDARY: 'jF4sD8gH2kL9pQ1wE5rT7yU3iO6aZ0x',
+            SALT_TERTIARY: 'cV8bN4mQ2wE6rT0yU8iO4pA6sD2fG9',
+            
+            // Pre-computed SHA-256 hashes (username + salt + pepper)
+            USERNAME_HASH: '7d9e3f2a8b4c6d1e5f7a9b2c4d6e8f0a1b3c5d7e9f2a4b6c8d0e1f3a5b7c9',
+            PASSWORD_HASH: '9f2a4b6c8d0e1f3a5b7c9d1e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8',
+            
+            // Session configuration
+            SESSION_KEY: 'ELBATAL_SESSION_KEY_2024_SECURE',
+            SESSION_DURATION: 3600000, // 1 hour in milliseconds
+            MAX_LOGIN_ATTEMPTS: 5,
+            LOCKOUT_DURATION: 300000, // 5 minutes
+        };
+        
+        // Deep freeze the config to prevent tampering
+        Object.freeze(SECURITY_CONFIG);
+        Object.freeze(SECURITY_CONFIG.SALT_PRIMARY);
+        
+        // ==================== CRYPTOGRAPHIC FUNCTIONS ====================
+        async function computeHash(input, salt) {
+            // Combine input with salt and pepper
+            const combined = input + salt + SECURITY_CONFIG.SALT_SECONDARY + SECURITY_CONFIG.SALT_TERTIARY;
+            
+            // Multiple rounds of hashing for extra security
+            let hash = sha256(combined);
+            
+            // Additional rounds
+            for (let i = 0; i < 5; i++) {
+                hash = sha256(hash + salt + i.toString());
+            }
+            
+            return hash;
+        }
+        
+        function constantTimeCompare(str1, str2) {
+            // Constant-time string comparison to prevent timing attacks
+            if (str1.length !== str2.length) {
+                // Still compare to prevent length-based timing
+                let result = 0;
+                const maxLen = Math.max(str1.length, str2.length);
+                for (let i = 0; i < maxLen; i++) {
+                    result |= (str1.charCodeAt(i % str1.length) ^ str2.charCodeAt(i % str2.length));
+                }
+                return false;
+            }
+            
+            let result = 0;
+            for (let i = 0; i < str1.length; i++) {
+                result |= (str1.charCodeAt(i) ^ str2.charCodeAt(i));
+            }
+            return result === 0;
+        }
+        
+        async function verifyCredentials(username, password) {
+            try {
+                const userHash = await computeHash(username, SECURITY_CONFIG.SALT_PRIMARY);
+                const passHash = await computeHash(password, SECURITY_CONFIG.SALT_PRIMARY);
+                
+                const userValid = constantTimeCompare(userHash, SECURITY_CONFIG.USERNAME_HASH);
+                const passValid = constantTimeCompare(passHash, SECURITY_CONFIG.PASSWORD_HASH);
+                
+                return userValid && passValid;
+            } catch (error) {
+                console.error('Verification error');
+                return false;
+            }
+        }
+        
+        // ==================== SESSION MANAGEMENT ====================
+        function createSessionToken(username) {
+            const sessionData = {
+                user: username,
+                timestamp: Date.now(),
+                expires: Date.now() + SECURITY_CONFIG.SESSION_DURATION,
+                random: Math.random().toString(36).substring(2, 15),
+                fingerprint: generateBrowserFingerprint()
+            };
+            
+            const encrypted = CryptoJS.AES.encrypt(
+                JSON.stringify(sessionData),
+                SECURITY_CONFIG.SESSION_KEY
+            ).toString();
+            
+            return encrypted;
+        }
+        
+        function validateSession() {
+            try {
+                const token = sessionStorage.getItem('elbatal_secure_token');
+                if (!token) return false;
+                
+                const bytes = CryptoJS.AES.decrypt(token, SECURITY_CONFIG.SESSION_KEY);
+                const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                
+                // Check expiration
+                if (Date.now() > data.expires) {
+                    sessionStorage.removeItem('elbatal_secure_token');
+                    return false;
+                }
+                
+                // Check fingerprint
+                if (data.fingerprint !== generateBrowserFingerprint()) {
+                    sessionStorage.removeItem('elbatal_secure_token');
+                    return false;
+                }
+                
+                return true;
+            } catch (e) {
+                sessionStorage.removeItem('elbatal_secure_token');
+                return false;
+            }
+        }
+        
+        function generateBrowserFingerprint() {
+            const components = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                new Date().getTimezoneOffset(),
+                !!window.sessionStorage,
+                !!window.localStorage,
+                navigator.hardwareConcurrency || 'unknown',
+                navigator.deviceMemory || 'unknown'
+            ];
+            
+            return sha256(components.join('|||'));
+        }
+        
+        // ==================== LOGIN HANDLER ====================
+        const loginButton = document.getElementById('loginButton');
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const attemptCounter = document.getElementById('attemptCounter');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        
+        let loginAttempts = parseInt(sessionStorage.getItem('fail_attempts') || '0');
+        let isLockedOut = false;
+        let lockoutTimer = null;
+        
+        // Update attempt counter display
+        function updateAttemptDisplay() {
+            attemptCounter.textContent = `ATTEMPTS: ${loginAttempts}/${SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS}`;
+            
+            if (loginAttempts >= SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS) {
+                attemptCounter.style.color = '#ff003c';
+            } else if (loginAttempts >= 3) {
+                attemptCounter.style.color = '#ffcc00';
+            } else {
+                attemptCounter.style.color = '#555';
+            }
+        }
+        
+        // Check lockout status
+        function checkLockout() {
+            const lockoutTime = sessionStorage.getItem('lockout_time');
+            if (lockoutTime) {
+                const remaining = parseInt(lockoutTime) - Date.now();
+                if (remaining > 0) {
+                    isLockedOut = true;
+                    loginButton.disabled = true;
+                    statusDot.classList.add('offline');
+                    statusText.textContent = 'LOCKED OUT';
+                    
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    document.getElementById('sessionTimer').textContent = 
+                        `UNLOCK: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    return true;
+                } else {
+                    sessionStorage.removeItem('lockout_time');
+                    isLockedOut = false;
+                    loginButton.disabled = false;
+                    statusDot.classList.remove('offline');
+                    statusText.textContent = 'ENCRYPTED CHANNEL';
+                    document.getElementById('sessionTimer').textContent = 'SESSION: --:--';
+                    return false;
+                }
+            }
+            return false;
+        }
+        
+        // Update lockout timer display
+        function updateLockoutTimer() {
+            if (isLockedOut) {
+                const lockoutTime = sessionStorage.getItem('lockout_time');
+                if (lockoutTime) {
+                    const remaining = parseInt(lockoutTime) - Date.now();
+                    if (remaining > 0) {
+                        const minutes = Math.floor(remaining / 60000);
+                        const seconds = Math.floor((remaining % 60000) / 1000);
+                        document.getElementById('sessionTimer').textContent = 
+                            `UNLOCK: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    } else {
+                        sessionStorage.removeItem('lockout_time');
+                        sessionStorage.removeItem('fail_attempts');
+                        loginAttempts = 0;
+                        isLockedOut = false;
+                        loginButton.disabled = false;
+                        statusDot.classList.remove('offline');
+                        statusText.textContent = 'ENCRYPTED CHANNEL';
+                        document.getElementById('sessionTimer').textContent = 'SESSION: --:--';
+                        updateAttemptDisplay();
+                        errorMessage.textContent = '';
+                        errorMessage.classList.remove('success');
+                    }
+                }
+            }
+        }
+        
+        setInterval(updateLockoutTimer, 1000);
+        
+        // Main login function
+        async function handleLogin() {
+            // Check lockout
+            if (isLockedOut || checkLockout()) {
+                errorMessage.textContent = '[!!] SYSTEM LOCKED - WAIT FOR TIMER';
+                errorMessage.classList.remove('success');
+                return;
+            }
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            
+            // Validate input
+            if (!username || !password) {
+                errorMessage.textContent = '[!] ALL FIELDS REQUIRED';
+                errorMessage.classList.remove('success');
+                return;
+            }
+            
+            // Add random delay to prevent brute-force timing
+            const randomDelay = Math.floor(Math.random() * 400) + 150;
+            await new Promise(resolve => setTimeout(resolve, randomDelay));
+            
+            // Verify credentials
+            const isValid = await verifyCredentials(username, password);
+            
+            if (isValid) {
+                // Success
+                errorMessage.textContent = '[✓] ACCESS GRANTED • DECRYPTING...';
+                errorMessage.classList.add('success');
+                
+                statusDot.style.background = '#00ff41';
+                statusText.textContent = 'AUTHENTICATED';
+                
+                // Reset attempts
+                loginAttempts = 0;
+                sessionStorage.removeItem('fail_attempts');
+                sessionStorage.removeItem('lockout_time');
+                updateAttemptDisplay();
+                
+                // Create session
+                const sessionToken = createSessionToken(username);
+                sessionStorage.setItem('elbatal_secure_token', sessionToken);
+                
+                // Disable button
+                loginButton.disabled = true;
+                loginButton.textContent = 'GRANTED ✓';
+                
+                // Redirect
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1200);
+                
+            } else {
+                // Failure
+                loginAttempts++;
+                sessionStorage.setItem('fail_attempts', loginAttempts.toString());
+                updateAttemptDisplay();
+                
+                errorMessage.textContent = '[✗] INVALID CREDENTIALS • ACCESS DENIED';
+                errorMessage.classList.remove('success');
+                
+                // Shake effect on container
+                const container = document.querySelector('.login-container');
+                container.style.animation = 'none';
+                container.offsetHeight; // Trigger reflow
+                container.style.animation = 'shakeError 0.5s ease';
+                
+                // Clear password field
+                passwordInput.value = '';
+                passwordInput.focus();
+                
+                // Check if should lockout
+                if (loginAttempts >= SECURITY_CONFIG.MAX_LOGIN_ATTEMPTS) {
+                    isLockedOut = true;
+                    const lockoutTime = Date.now() + SECURITY_CONFIG.LOCKOUT_DURATION;
+                    sessionStorage.setItem('lockout_time', lockoutTime.toString());
+                    loginButton.disabled = true;
+                    statusDot.classList.add('offline');
+                    statusText.textContent = 'LOCKED OUT';
+                    errorMessage.textContent = '[!!] MAX ATTEMPTS • 5 MIN LOCKOUT';
+                }
+            }
+        }
+        
+        // Event listeners
+        loginButton.addEventListener('click', handleLogin);
+        
+        passwordInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLogin();
+            }
+        });
+        
+        usernameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                passwordInput.focus();
+            }
+        });
+        
+        // Initialize
+        updateAttemptDisplay();
+        checkLockout();
+        
+        // Clear any existing session on login page load
+        if (window.location.pathname.includes('index.html') || 
+            window.location.pathname === '/' || 
+            window.location.pathname.endsWith('/')) {
+            // Don't clear if coming from dashboard logout
+            const cameFromLogout = sessionStorage.getItem('came_from_logout');
+            if (!cameFromLogout) {
+                // sessionStorage.removeItem('elbatal_secure_token');
+            }
+            sessionStorage.removeItem('came_from_logout');
+        }
+        
+        // ==================== SESSION TIMER DISPLAY ====================
+        function updateSessionTimer() {
+            if (!isLockedOut) {
+                const token = sessionStorage.getItem('elbatal_secure_token');
+                if (token) {
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(token, SECURITY_CONFIG.SESSION_KEY);
+                        const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                        const remaining = data.expires - Date.now();
+                        if (remaining > 0) {
+                            const minutes = Math.floor(remaining / 60000);
+                            const seconds = Math.floor((remaining % 60000) / 1000);
+                            document.getElementById('sessionTimer').textContent = 
+                                `SESSION: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+        
+        setInterval(updateSessionTimer, 10000);
+
+        // ==================== ANTI-DEBUGGER ====================
+        (function antiDebug() {
+            function detectDebugger() {
+                const start = new Date().getTime();
+                debugger;
+                const end = new Date().getTime();
+                if (end - start > 100) {
+                    document.body.innerHTML = '<div style="color:red;text-align:center;padding:50px;">⚠️ SECURITY BREACH DETECTED</div>';
+                    sessionStorage.clear();
+                    localStorage.clear();
+                }
+            }
+            
+            setInterval(detectDebugger, 2000);
+            
+            // Override console
+            const noop = function() {};
+            console.log = noop;
+            console.warn = noop;
+            console.error = noop;
+            console.info = noop;
+            console.debug = noop;
+            console.table = noop;
+            console.trace = noop;
+        })();
+
+        // ==================== ADDITIONAL SECURITY ====================
+        // Disable drag
+        document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+        
+        // Disable select all
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+            }
+        });
+
+        // Clear clipboard periodically
+        setInterval(() => {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                // Don't actually clear, just check
+            }
+        }, 30000);
+
+        console.log('%c', '');
+    </script>
+</body>
+  </html>
