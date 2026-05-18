@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#000000">
+    <title>ELBATAL | Command & Control Center</title>
+    
+    <!-- Crypto Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    
+    <style>
+        /* ==================== CSS ROOT VARIABLES ==================== */
+        :root {
+            --bg-deep: #050505;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #0f0f0f;
+            --bg-tertiary: #151515;
+            --bg-card: #111111;
+            --bg-card-hover: #1a1a1a;
+            --green-neon: #00ff41;
+            --green-dim: #00cc33;
+            --green-dark: #004d00;
+            --text-bright: #ffffff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --text-muted: #666666;
+            --text-dim: #444444;
+            --border-subtle: #1a1a1a;
+            --border-medium: #2a2a2a;
+            --border-glow: #00ff4130;
+            --red-error: #ff003c;
+            --red-glow: #ff003c50;
+            --yellow-warn: #ffcc00;
+            --blue-info: #00b4d8;
+            --purple-accent: #7b2fff;
+            --orange-accent: #ff6b35;
+            --font-code: 'Fira Code', 'Courier New', 'Consolas', monospace;
+            --font-ui: 'Segoe UI', system-ui, sans-serif;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.6);
+            --shadow-card-hover: 0 8px 35px rgba(0, 255, 65, 0.15);
+            --shadow-neon: 0 0 30px rgba(0, 255, 65, 0.3);
+            --transition-fast: 0.12s ease;
+            --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --sidebar-width: 280px;
+            --sidebar-collapsed: 70px;
+            --topbar-height: 60px;
+            --z-sidebar: 100;
+            --z-topbar: 200;
+            --z-overlay: 300;
+            --z-modal: 400;
+            --z-notification: 500;
+        }
+
+        /* ==================== GLOBAL RESET ==================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: var(--font-code);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            position: relative;
+        }
+
+        /* ==================== CUSTOM SCROLLBAR ==================== */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--green-dark); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--green-neon); }
+        ::-webkit-scrollbar-corner { background: transparent; }
+
+        /* ==================== BACKGROUND PARTICLES ==================== */
+        #bgParticles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .bg-particle {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--green-neon);
+            animation: floatUpParticle linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatUpParticle {
+            0% { transform: translateY(105vh) scale(0); opacity: 0; }
+            5% { opacity: 0.7; }
+            85% { opacity: 0.1; }
+            100% { transform: translateY(-5vh) scale(2); opacity: 0; }
+        }
+
+        /* ==================== SCANLINE OVERLAY ==================== */
+        #scanlineOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.02) 2px,
+                rgba(0, 0, 0, 0.02) 4px
+            );
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, #080808 0%, #0a0a0a 50%, #060606 100%);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            z-index: var(--z-sidebar);
+            transition: all var(--transition-smooth);
+            position: relative;
+            box-shadow: 4px 0 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed);
+            min-width: var(--sidebar-collapsed);
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+
+        .sidebar-logo-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--green-neon);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+            object-fit: cover;
+            transition: var(--transition-smooth);
+            background: url('https://i.imgur.com/FQH0LqG.png') center/cover no-repeat;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+            text-shadow: 0 0 15px var(--green-neon);
+            white-space: nowrap;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            right: -12px;
+            top: 35px;
+            width: 24px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: var(--transition-smooth);
+            z-index: 5;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--green-dark);
+            color: var(--green-neon);
+            border-color: var(--green-neon);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px 0;
+        }
+
+        .nav-section-title {
+            padding: 15px 20px 8px;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 20px;
+            margin: 2px 10px;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-smooth);
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 255, 65, 0.04);
+            color: var(--text-bright);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 255, 65, 0.08);
+            color: var(--green-neon);
+            border-left: 3px solid var(--green-neon);
+            box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.05);
+            font-weight: 600;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(0,255,65,0.08), transparent);
+            border-radius: var(--radius-md);
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--green-dark);
+            color: var(--green-neon);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .user-info-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .user-avatar-small {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 1px solid var(--green-neon);
+            background: url('https://i.imgur.com/FQH0LqG.png') center/cover no-repeat;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            letter-spacing: 0.5px;
+        }
+
+        .user-role {
+            font-size: 0.6rem;
+            color: var(--green-neon);
+            letter-spacing: 1px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--red-error);
+            color: var(--red-error);
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-smooth);
+            text-transform: uppercase;
+        }
+
+        .logout-btn:hover {
+            background: var(--red-error);
+            color: #000;
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.4);
+        }
+
+        /* ==================== TOPBAR ==================== */
+        .topbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: var(--sidebar-width);
+            height: var(--topbar-height);
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: var(--z-topbar);
+            transition: left var(--transition-smooth);
+        }
+
+        .sidebar.collapsed ~ .topbar {
+            left: var(--sidebar-collapsed);
+        }
+
+        .topbar-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .breadcrumb-separator {
+            color: var(--green-neon);
+        }
+
+        .breadcrumb-current {
+            color: var(--text-bright);
+            font-weight: 600;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .topbar-search {
+            position: relative;
+        }
+
+        .topbar-search input {
+            padding: 8px 35px 8px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 20px;
+            color: var(--text-primary);
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            width: 220px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .topbar-search input:focus {
+            border-color: var(--green-neon);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+            width: 260px;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .topbar-icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            position: relative;
+            font-size: 1rem;
+        }
+
+        .topbar-icon-btn:hover {
+            background: var(--bg-card);
+            color: var(--green-neon);
+            border-color: var(--green-neon);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red-error);
+            box-shadow: 0 0 8px var(--red-glow);
+        }
+
+        /* ==================== MAIN CONTENT AREA ==================== */
+        .main-content {
+            flex: 1;
+            margin-top: var(--topbar-height);
+            margin-left: 0;
+            padding: 30px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: calc(100vh - var(--topbar-height));
+            position: relative;
+            z-index: 5;
+            transition: var(--transition-smooth);
+        }
+
+        /* ==================== SECTION HEADER ==================== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-title-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--green-dark), #002200);
+            border: 1px solid var(--green-neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        }
+
+        .section-title-text {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--text-bright);
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .section-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1.5px solid var(--green-neon);
+            color: var(--green-neon);
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-smooth);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--green-neon);
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 255, 65, 0.4);
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-smooth);
+            text-transform: uppercase;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-bright);
+        }
+
+        /* ==================== STATS CARDS ==================== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-card-hover);
+            transform: translateY(-3px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--green-neon), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-smooth);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon.green { background: rgba(0, 255, 65, 0.1); color: var(--green-neon); }
+        .stat-icon.blue { background: rgba(0, 180, 216, 0.1); color: var(--blue-info); }
+        .stat-icon.purple { background: rgba(123, 47, 255, 0.1); color: var(--purple-accent); }
+        .stat-icon.orange { background: rgba(255, 107, 53, 0.1); color: var(--orange-accent); }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            letter-spacing: 1px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .stat-change {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-change.positive { color: var(--green-neon); }
+        .stat-change.negative { color: var(--red-error); }
+
+        /* ==================== MAIN GRID CARDS ==================== */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            transition: all var(--transition-smooth);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .content-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-card-hover);
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+        }
+
+        .content-card-image {
+            width: 100%;
+            height: 160px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+        }
+
+        .content-card:hover .content-card-image {
+            border-color: var(--green-neon);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        }
+
+        .content-card-tag {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        .tag-tool { background: rgba(0, 255, 65, 0.15); color: var(--green-neon); border: 1px solid rgba(0,255,65,0.3); }
+        .tag-course { background: rgba(0, 180, 216, 0.15); color: var(--blue-info); border: 1px solid rgba(0,180,216,0.3); }
+        .tag-book { background: rgba(255, 107, 53, 0.15); color: var(--orange-accent); border: 1px solid rgba(255,107,53,0.3); }
+        .tag-app { background: rgba(123, 47, 255, 0.15); color: var(--purple-accent); border: 1px solid rgba(123,47,255,0.3); }
+
+        .content-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            letter-spacing: 0.5px;
+        }
+
+        .content-card-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .content-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .content-card-date {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        .content-card-action {
+            font-size: 0.7rem;
+            color: var(--green-neon);
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .content-card-action:hover {
+            text-shadow: 0 0 10px var(--green-neon);
+        }
+
+        /* ==================== HIDDEN SECTIONS ==================== */
+        .section-content {
+            display: none;
+        }
+
+        .section-content.active {
+            display: block;
+            animation: fadeSlideIn 0.4s ease;
+        }
+
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== UPLOAD MODAL ==================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: var(--z-modal);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-xl);
+            padding: 35px;
+            width: 550px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 65, 0.1);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--text-bright);
+        }
+
+        .modal-close {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            font-size: 1.2rem;
+        }
+
+        .modal-close:hover {
+            background: var(--red-error);
+            color: #fff;
+            border-color: var(--red-error);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--green-neon);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        /* ==================== NOTIFICATION TOAST ==================== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: var(--z-notification);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 15px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-card);
+            animation: toastSlideIn 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 280px;
+        }
+
+        .toast.success { border-left: 3px solid var(--green-neon); }
+        .toast.error { border-left: 3px solid var(--red-error); }
+        .toast.warning { border-left: 3px solid var(--yellow-warn); }
+
+        @keyframes toastSlideIn {
+            0% { opacity: 0; transform: translateX(100px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: var(--sidebar-collapsed);
+                min-width: var(--sidebar-collapsed);
+            }
+            .sidebar .sidebar-logo-text,
+            .sidebar .nav-section-title,
+            .sidebar .nav-item span:not(.nav-icon),
+            .sidebar .nav-badge,
+            .sidebar .user-details {
+                display: none;
+            }
+            .sidebar .nav-item {
+                justify-content: center;
+                padding: 13px;
+            }
+            .topbar {
+                left: var(--sidebar-collapsed);
+            }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .topbar {
+                left: 0;
+                padding: 0 15px;
+            }
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                z-index: var(--z-overlay);
+            }
+            .sidebar.mobile-open {
+                left: 0;
+                width: var(--sidebar-width);
+                min-width: var(--sidebar-width);
+            }
+            .main-content {
+                padding: 20px 15px;
+            }
+            .section-title-text {
+                font-size: 1.2rem;
+            }
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            .topbar-search input {
+                width: 140px;
+            }
+            .topbar-search input:focus {
+                width: 160px;
+            }
+        }
+
+        /* ==================== SELECTION ==================== */
+        ::selection {
+            background: rgba(0, 255, 65, 0.25);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Particles -->
+    <div id="bgParticles"></div>
+    
+    <!-- Scanline Overlay -->
+    <div id="scanlineOverlay"></div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo-img" role="img" aria-label="ELBATAL Logo"></div>
+            <span class="sidebar-logo-text">ELBATAL</span>
+            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">◀</button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">MAIN NAVIGATION</div>
+            
+            <div class="nav-item active" data-section="dashboard" data-nav="dashboard">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </div>
+            
+            <div class="nav-item" data-section="tools" data-nav="tools">
+                <span class="nav-icon">🛠️</span>
+                <span>Tools</span>
+                <span class="nav-badge">12</span>
+            </div>
+            
+            <div class="nav-item" data-section="courses" data-nav="courses">
+                <span class="nav-icon">📚</span>
+                <span>Courses</span>
+                <span class="nav-badge">8</span>
+            </div>
+            
+            <div class="nav-section-title">RESOURCES</div>
+            
+            <div class="nav-item" data-section="books" data-nav="books">
+                <span class="nav-icon">📖</span>
+                <span>Books</span>
+                <span class="nav-badge">15</span>
+            </div>
+            
+            <div class="nav-item" data-section="apps" data-nav="apps">
+                <span class="nav-icon">📱</span>
+                <span>Applications</span>
+                <span class="nav-badge">6</span>
+            </div>
+            
+            <div class="nav-section-title">INTELLIGENCE</div>
+            
+            <div class="nav-item" data-section="info" data-nav="info">
+                <span class="nav-icon">ℹ️</span>
+                <span>Info Database</span>
+            </div>
+            
+            <div class="nav-item" data-section="upload" data-nav="upload">
+                <span class="nav-icon">⬆️</span>
+                <span>Upload Content</span>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info-card">
+                <div class="user-avatar-small"></div>
+                <div class="user-details">
+                    <div class="user-name">ELBATAL1</div>
+                    <div class="user-role">ROOT ADMIN</div>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutButton">⏻ LOGOUT</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="mobileOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99;" onclick="toggleMobileSidebar()"></div>
+
+    <!-- ==================== TOPBAR ==================== -->
+    <header class="topbar" id="topbar">
+        <div class="topbar-breadcrumb">
+            <span>🏠</span>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">Dashboard</span>
+        </div>
+        
+        <div class="topbar-actions">
+            <div class="topbar-search">
+                <input type="text" id="globalSearch" placeholder="Search everything..." aria-label="Search">
+                <span class="search-icon">🔍</span>
+            </div>
+            
+            <button class="topbar-icon-btn" id="mobileMenuBtn" title="Menu" onclick="toggleMobileSidebar()">
+                ☰
+            </button>
+            
+            <button class="topbar-icon-btn" title="Notifications">
+                🔔
+                <span class="notification-dot"></span>
+            </button>
+            
+            <button class="topbar-icon-btn" title="Settings" onclick="showToast('Settings coming soon', 'warning')">
+                ⚙️
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main-content" id="mainContent">
+        
+        <!-- DASHBOARD SECTION -->
+        <div class="section-content active" id="section-dashboard">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">📊</div>
+                    <div>
+                        <div class="section-title-text">DASHBOARD</div>
+                        <div class="section-subtitle">SYSTEM OVERVIEW & ANALYTICS</div>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <button class="btn-secondary" onclick="refreshStats()">↻ REFRESH</button>
+                    <button class="btn-primary" onclick="navigateTo('upload')">+ ADD NEW</button>
+                </div>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card" onclick="navigateTo('tools')">
+                    <div class="stat-icon green">🛠️</div>
+                    <div class="stat-value" id="statTools">12</div>
+                    <div class="stat-label">Total Tools</div>
+                    <div class="stat-change positive">▲ 3 this week</div>
+                </div>
+                
+                <div class="stat-card" onclick="navigateTo('courses')">
+                    <div class="stat-icon blue">📚</div>
+                    <div class="stat-value" id="statCourses">8</div>
+                    <div class="stat-label">Active Courses</div>
+                    <div class="stat-change positive">▲ 2 new</div>
+                </div>
+                
+                <div class="stat-card" onclick="navigateTo('books')">
+                    <div class="stat-icon orange">📖</div>
+                    <div class="stat-value" id="statBooks">15</div>
+                    <div class="stat-label">Digital Books</div>
+                    <div class="stat-change positive">▲ 5 added</div>
+                </div>
+                
+                <div class="stat-card" onclick="navigateTo('apps')">
+                    <div class="stat-icon purple">📱</div>
+                    <div class="stat-value" id="statApps">6</div>
+                    <div class="stat-label">Applications</div>
+                    <div class="stat-change negative">▼ 1 outdated</div>
+                </div>
+            </div>
+            
+            <!-- Recent Items Grid -->
+            <div class="section-title-text" style="font-size:1.1rem;margin-bottom:20px;">RECENTLY ADDED</div>
+            <div class="content-grid" id="recentItemsGrid"></div>
+        </div>
+
+        <!-- TOOLS SECTION -->
+        <div class="section-content" id="section-tools">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">🛠️</div>
+                    <div>
+                        <div class="section-title-text">TOOLS</div>
+                        <div class="section-subtitle">SECURITY & DEVELOPMENT TOOLS</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-grid" id="toolsGrid"></div>
+        </div>
+
+        <!-- COURSES SECTION -->
+        <div class="section-content" id="section-courses">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">📚</div>
+                    <div>
+                        <div class="section-title-text">COURSES</div>
+                        <div class="section-subtitle">TRAINING & EDUCATION</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-grid" id="coursesGrid"></div>
+        </div>
+
+        <!-- BOOKS SECTION -->
+        <div class="section-content" id="section-books">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">📖</div>
+                    <div>
+                        <div class="section-title-text">BOOKS</div>
+                        <div class="section-subtitle">DIGITAL LIBRARY</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-grid" id="booksGrid"></div>
+        </div>
+
+        <!-- APPS SECTION -->
+        <div class="section-content" id="section-apps">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">📱</div>
+                    <div>
+                        <div class="section-title-text">APPLICATIONS</div>
+                        <div class="section-subtitle">MOBILE & DESKTOP APPS</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-grid" id="appsGrid"></div>
+        </div>
+
+        <!-- INFO SECTION -->
+        <div class="section-content" id="section-info">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">ℹ️</div>
+                    <div>
+                        <div class="section-title-text">INFO DATABASE</div>
+                        <div class="section-subtitle">KNOWLEDGE & REFERENCES</div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-grid" id="infoGrid"></div>
+        </div>
+
+        <!-- UPLOAD SECTION -->
+        <div class="section-content" id="section-upload">
+            <div class="section-header">
+                <div class="section-title-group">
+                    <div class="section-title-icon">⬆️</div>
+                    <div>
+                        <div class="section-title-text">UPLOAD CONTENT</div>
+                        <div class="section-subtitle">ADD NEW ITEMS TO DATABASE</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:30px;max-width:700px;">
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select id="uploadCategory">
+                        <option value="tools">Tools</option>
+                        <option value="courses">Courses</option>
+                        <option value="books">Books</option>
+                        <option value="apps">Applications</option>
+                        <option value="info">Info Database</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="uploadTitle" placeholder="Enter item title...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="uploadDesc" placeholder="Enter item description..." rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input type="text" id="uploadImage" placeholder="https://example.com/image.jpg">
+                </div>
+                
+                <div class="form-group">
+                    <label>Link / Download URL</label>
+                    <input type="text" id="uploadLink" placeholder="https://...">
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="clearUploadForm()">CLEAR</button>
+                    <button class="btn-primary" onclick="handleUpload()">⬆️ UPLOAD ITEM</button>
+                </div>
+                
+                <div id="uploadStatus" style="margin-top:15px;text-align:center;font-size:0.8rem;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    <script>
+        'use strict';
+
+        // ==================== SESSION VALIDATION ====================
+        (function validateSession() {
+            const token = sessionStorage.getItem('elbatal_secure_token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const bytes = CryptoJS.AES.decrypt(token, 'ELBATAL_SESSION_KEY_2024');
+                const data = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                if (!data.valid || !data.user || (Date.now() - data.time) > 3600000) {
+                    sessionStorage.removeItem('elbatal_secure_token');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                document.querySelector('.user-name').textContent = data.user;
+            } catch (e) {
+                sessionStorage.removeItem('elbatal_secure_token');
+                window.location.href = 'index.html';
+            }
+        })();
+
+        // ==================== BACKGROUND PARTICLES ====================
+        const particlesBg = document.getElementById('bgParticles');
+        function createBgParticle() {
+            const p = document.createElement('div');
+            p.classList.add('bg-particle');
+            const size = Math.random() * 3 + 1;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = (Math.random() * 10 + 8) + 's';
+            p.style.animationDelay = Math.random() * 5 + 's';
+            particlesBg.appendChild(p);
+            setTimeout(() => { if (p.parentNode) p.remove(); }, 18000);
+        }
+        setInterval(() => { if (particlesBg.children.length < 25) createBgParticle(); }, 500);
+        for (let i = 0; i < 12; i++) setTimeout(createBgParticle, i * 300);
+
+        // ==================== SIDEBAR TOGGLE ====================
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const topbar = document.getElementById('topbar');
+        
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarToggle.textContent = '▶';
+            } else {
+                sidebarToggle.textContent = '◀';
+            }
+        });
+
+        function toggleMobileSidebar() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('mobile-open');
+                document.getElementById('mobileOverlay').style.display = 
+                    sidebar.classList.contains('mobile-open') ? 'block' : 'none';
+            }
+        }
+
+        // ==================== NAVIGATION SYSTEM ====================
+        let currentSection = 'dashboard';
+        
+        function navigateTo(section) {
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            const targetNav = document.querySelector(`.nav-item[data-section="${section}"]`);
+            if (targetNav) targetNav.classList.add('active');
+            
+            // Update sections
+            document.querySelectorAll('.section-content').forEach(sec => sec.classList.remove('active'));
+            const targetSection = document.getElementById(`section-${section}`);
+            if (targetSection) targetSection.classList.add('active');
+            
+            // Update breadcrumb
+            const sectionNames = {
+                dashboard: 'Dashboard',
+                tools: 'Tools',
+                courses: 'Courses',
+                books: 'Books',
+                apps: 'Applications',
+                info: 'Info Database',
+                upload: 'Upload Content'
+            };
+            document.getElementById('breadcrumbCurrent').textContent = sectionNames[section] || section;
+            
+            currentSection = section;
+            
+            // Close mobile sidebar
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('mobile-open');
+                document.getElementById('mobileOverlay').style.display = 'none';
+            }
+        }
+
+        // Nav item clicks
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const section = this.dataset.section;
+                navigateTo(section);
+            });
+        });
+
+        // ==================== CONTENT DATA ====================
+        // This is where you add/modify content
+        const contentDatabase = {
+            tools: [
+                { title: 'Nmap Scanner', desc: 'Advanced network discovery and security auditing tool. Perfect for network inventory and vulnerability detection.', image: 'https://i.imgur.com/8KM7QbT.jpg', tag: 'tool', date: '2024-01-15', link: '#' },
+                { title: 'Metasploit Framework', desc: 'World\'s most used penetration testing framework. Exploit development and vulnerability validation platform.', image: 'https://i.imgur.com/JbLqTpX.jpg', tag: 'tool', date: '2024-02-20', link: '#' },
+                { title: 'Wireshark Analyzer', desc: 'Network protocol analyzer for Unix and Windows. Capture and interactively browse traffic.', image: 'https://i.imgur.com/VkLmNoP.jpg', tag: 'tool', date: '2024-03-10', link: '#' },
+                { title: 'Burp Suite Pro', desc: 'Leading web vulnerability scanner and testing platform. Essential for web application security testing.', image: 'https://i.imgur.com/QwErTyU.jpg', tag: 'tool', date: '2024-04-05', link: '#' },
+                { title: 'SQLMap', desc: 'Automatic SQL injection and database takeover tool. Supports multiple database management systems.', image: 'https://i.imgur.com/XyZaBcD.jpg', tag: 'tool', date: '2024-05-12', link: '#' },
+                { title: 'John The Ripper', desc: 'Fast password cracker for Unix, Windows, DOS, and OpenVMS. Supports hundreds of hash types.', image: 'https://i.imgur.com/AsDfGhJ.jpg', tag: 'tool', date: '2024-06-18', link: '#' }
+            ],
+            courses: [
+                { title: 'Ethical Hacking Masterclass', desc: 'Complete ethical hacking course covering network security, web app testing, and penetration testing basics.', image: 'https://i.imgur.com/LmNoPqR.jpg', tag: 'course', date: '2024-01-20', link: '#' },
+                { title: 'OSINT Advanced Techniques', desc: 'Open Source Intelligence gathering methods. Learn to collect data from public sources effectively.', image: 'https://i.imgur.com/StUvWxY.jpg', tag: 'course', date: '2024-02-15', link: '#' },
+                { title: 'Reverse Engineering 101', desc: 'Introduction to reverse engineering malware and software. Practical labs and real-world examples.', image: 'https://i.imgur.com/ZaBcDeF.jpg', tag: 'course', date: '2024-03-22', link: '#' },
+                { title: 'Python for Hackers', desc: 'Python programming focused on security tools development, automation, and exploit writing.', image: 'https://i.imgur.com/GhJkLmN.jpg', tag: 'course', date: '2024-04-30', link: '#' }
+            ],
+            books: [
+                { title: 'The Web Application Hacker\'s Handbook', desc: 'Comprehensive guide to finding and exploiting security flaws in web applications. By Dafydd Stuttar
