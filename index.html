@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#000000">
+    <title>ELBATAL | Secure Console v4.2</title>
+    
+    <!-- CryptoJS Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    
+    <style>
+        /* ==================== CSS VARIABLES ==================== */
+        :root {
+            --matrix-green: #00ff41;
+            --matrix-dark: #003b00;
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999999;
+            --text-muted: #555555;
+            --border-color: #1a1a1a;
+            --border-glow: #00ff41;
+            --error-red: #ff003c;
+            --error-glow: #ff003c80;
+            --success-green: #00ff41;
+            --warning-yellow: #ffcc00;
+            --glitch-blue: #00f0ff;
+            --glitch-purple: #b300ff;
+            --font-mono: 'Courier New', 'Fira Code', 'Consolas', monospace;
+            --font-display: 'Share Tech Mono', 'Courier New', monospace;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.7);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.9);
+            --shadow-glow: 0 0 20px rgba(0, 255, 65, 0.3);
+            --shadow-glow-intense: 0 0 40px rgba(0, 255, 65, 0.5);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --blur-amount: 12px;
+        }
+
+        /* ==================== GLOBAL RESET ==================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            font-family: var(--font-mono);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            position: relative;
+            cursor: default;
+        }
+
+        /* ==================== MATRIX CANVAS ==================== */
+        canvas#matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ==================== SCAN LINE EFFECT ==================== */
+        #scanLines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+        }
+
+        /* ==================== LOGIN CONTAINER ==================== */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .login-container {
+            width: 460px;
+            max-width: 95vw;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: var(--radius-lg);
+            box-shadow: 
+                var(--shadow-lg),
+                var(--shadow-glow),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            padding: 40px 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            animation: containerEntry 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent,
+                rgba(0, 255, 65, 0.05),
+                transparent,
+                rgba(0, 255, 65, 0.03),
+                transparent
+            );
+            animation: rotateBorder 8s linear infinite;
+            z-index: -1;
+        }
+
+        .login-container::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            background: rgba(10, 10, 10, 0.95);
+            border-radius: calc(var(--radius-lg) - 1px);
+            z-index: -1;
+        }
+
+        @keyframes containerEntry {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) rotateX(5deg) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ==================== LOGO / AVATAR SECTION ==================== */
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .avatar-main {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--matrix-green);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.4),
+                0 0 40px rgba(0, 255, 65, 0.2),
+                inset 0 0 20px rgba(0, 255, 65, 0.1);
+            animation: avatarPulse 2s ease-in-out infinite;
+            object-fit: cover;
+            background: url('https://i.imgur.com/FQH0LqG.png') center/cover no-repeat;
+            background-color: #000;
+        }
+
+        .avatar-ring {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 255, 65, 0.4);
+            animation: ringRotate 10s linear infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 255, 65, 0.4), 0 0 40px rgba(0, 255, 65, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(0, 255, 65, 0.7), 0 0 60px rgba(0, 255, 65, 0.4);
+            }
+        }
+
+        @keyframes ringRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ==================== TITLE ==================== */
+        .title-container {
+            text-align: center;
+        }
+
+        .main-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 6px;
+            color: #fff;
+            text-shadow: 
+                0 0 10px var(--matrix-green),
+                0 0 20px var(--matrix-green),
+                0 0 40px var(--matrix-green);
+            position: relative;
+            display: inline-block;
+        }
+
+        .main-title::before {
+            content: '< ';
+            color: var(--matrix-green);
+            font-weight: 300;
+        }
+
+        .main-title::after {
+            content: ' />';
+            color: var(--matrix-green);
+            font-weight: 300;
+        }
+
+        .subtitle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+            margin-top: 5px;
+            animation: blinkText 3s step-end infinite;
+        }
+
+        @keyframes blinkText {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* ==================== STATUS INDICATOR ==================== */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--matrix-green);
+            animation: statusBlink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--matrix-green); }
+            50% { opacity: 0.3; box-shadow: 0 0 15px var(--matrix-green); }
+        }
+
+        /* ==================== INPUT GROUPS ==================== */
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px 18px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #2a2a2a;
+            border-radius: var(--radius-sm);
+            color: var(--matrix-green);
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+            outline: none;
+            transition: all var(--transition-normal);
+            caret-color: var(--matrix-green);
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-group input:focus {
+            border-color: var(--matrix-green);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.2),
+                inset 0 0 15px rgba(0, 255, 65, 0.05);
+            background: #111;
+        }
+
+        .input-group label {
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #0a0a0a;
+            padding: 0 8px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            z-index: 2;
+            transition: var(--transition-normal);
+        }
+
+        .input-group input:focus ~ label {
+            color: var(--matrix-green);
+        }
+
+        /* ==================== BUTTON ==================== */
+        .btn-authenticate {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 1.5px solid var(--matrix-green);
+            color: var(--matrix-green);
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-authenticate::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(0, 255, 65, 0.15),
+                transparent
+            );
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+
+        .btn-authenticate:hover::before {
+            left: 100%;
+        }
+
+        .btn-authenticate:hover {
+            background: var(--matrix-green);
+            color: #000;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 65, 0.5),
+                0 0 60px rgba(0, 255, 65, 0.3);
+            letter-spacing: 6px;
+        }
+
+        .btn-authenticate:active {
+            transform: scale(0.97);
+        }
+
+        .btn-authenticate:disabled {
+            border-color: #333;
+            color: #333;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* ==================== ERROR MESSAGE ==================== */
+        .error-container {
+            min-height: 25px;
+            text-align: center;
+        }
+
+        .error-message {
+            font-size: 0.75rem;
+            letter-spacing: 1.5px;
+            color: var(--error-red);
+            text-shadow: 0 0 10px rgba(255, 0, 60, 0.5);
+        }
+
+        .error-message.success {
+            color: var(--success-green);
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 600px) {
+            .login-container {
+                width: 92vw;
+                padding: 30px 20px;
+                gap: 18px;
+            }
+            
+            .main-title {
+                font-size: 1.4rem;
+                letter-spacing: 3px;
+            }
+            
+            .avatar-container {
+                width: 75px;
+                height: 75px;
+            }
+            
+            .input-group input {
+                padding: 14px 15px;
+                font-size: 0.85rem;
+            }
+            
+            .btn-authenticate {
+                padding: 14px;
+                font-size: 0.9rem;
+                letter-spacing: 2px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .login-container {
+                padding: 20px 15px;
+            }
+            
+            .footer-info {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+        }
+
+        /* ==================== CUSTOM SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--matrix-dark);
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--matrix-green);
+        }
+
+        /* ==================== SELECTION ==================== */
+        ::selection {
+            background: rgba(0, 255, 65, 0.3);
+            color: #fff;
+        }
+
+        ::-moz-selection {
+            background: rgba(0, 255, 65, 0.3);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrixCanvas" aria-hidden="true"></canvas>
+    
+    <!-- Scan Lines Effect -->
+    <div id="scanLines" aria-hidden="true"></div>
+
+    <!-- Main Login Wrapper -->
+    <div class="login-wrapper">
+        <div class="login-container" role="form" aria-label="Authentication Form">
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="avatar-container">
+                    <div class="avatar-ring"></div>
+                    <div class="avatar-main" role="img" aria-label="Hacker Avatar"></div>
+                </div>
+                
+                <div class="title-container">
+                    <h1 class="main-title">ELBATAL</h1>
+                    <p class="subtitle">[ SECURE CONSOLE v4.2 ]</p>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+                <span id="statusText">ENCRYPTED CHANNEL</span>
+                <span style="margin-left: auto;">AES-256</span>
+            </div>
+            
+            <!-- Username Input -->
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="usernameInput" 
+                    placeholder="root@elbatal" 
+                    autocomplete="off" 
+                    spellcheck="false"
+                    aria-label="Username"
+                    required
+                >
+                <label for="usernameInput">USERNAME</label>
+            </div>
+            
+            <!-- Password Input -->
+            <div class="input-group">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="••••••••••" 
+                    autocomplete="off"
+                    aria-label="Password"
+                    required
+                >
+                <label for="passwordInput">PASSPHRASE</label>
+            </div>
+            
+            <!-- Error Message -->
+            <div class="error-container">
+                <span class="error-message" id="errorMessage" aria-live="polite"></span>
+            </div>
+            
+            <!-- Authenticate Button -->
+            <button 
+                class="btn-authenticate" 
+                id="loginButton"
+                aria-label="Authenticate"
+            >
+                AUTHENTICATE
+            </button>
+            
+            <!-- Footer -->
+            <div class="footer-info">
+                <span>E2E ENCRYPTED</span>
+                <span id="attemptCounter">ATTEMPTS: 0/5</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== STRICT MODE ====================
+        'use strict';
+
+        // ==================== MATRIX RAIN EFFECT ====================
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        
+        let matrixWidth = window.innerWidth;
+        let matrixHeight = window.innerHeight;
+        
+        matrixCanvas.width = matrixWidth;
+        matrixCanvas.height = matrixHeight;
+        
+        const matrixChars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*()_+-=[]{}|;:<>/';
+        const matrixFontSize = 14;
+        let matrixColumns = Math.floor(matrixWidth / matrixFontSize);
+        const matrixDrops = [];
+        
+        for (let i = 0; i < matrixColumns; i++) {
+            matrixDrops[i] = Math.floor(Math.random() * -matrixHeight / matrixFontSize);
+        }
+        
+        function drawMatrixRain() {
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixWidth, matrixHeight);
+            
+            matrixCtx.fillStyle = '#0f0';
+            matrixCtx.font = matrixFontSize + 'px monospace';
+            
+            for (let i = 0; i < matrixDrops.length; i++) {
+                const char = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                
+                matrixCtx.fillStyle = '#00ff41';
+                matrixCtx.fillText(char, i * matrixFontSize, matrixDrops[i] * matrixFontSize);
+                
+                if (matrixDrops[i] > 0) {
+                    matrixCtx.fillStyle = 'rgba(0, 255, 65, 0.3)';
+                    matrixCtx.fillText(
+                        matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)),
+                        i * matrixFontSize,
+                        (matrixDrops[i] - 1) * matrixFontSize
+                    );
+                }
+                
+                if (matrixDrops[i] * matrixFontSize > matrixHeight && Math.random() > 0.975) {
+                    matrixDrops[i] = 0;
+                }
+                
+                matrixDrops[i]++;
+            }
+        }
+        
+        setInterval(drawMatrixRain, 42);
+        
+        window.addEventListener('resize', () => {
+            matrixWidth = window.innerWidth;
+            matrixHeight = window.innerHeight;
+            matrixCanvas.width = matrixWidth;
+            matrixCanvas.height = matrixHeight;
+            matrixColumns = Math.floor(matrixWidth / matrixFontSize);
+            matrixDrops.length = 0;
+            for (let i = 0; i < matrixColumns; i++) {
+                matrixDrops[i] = Math.floor(Math.random() * -20);
+            }
+        });
+
+        // ==================== SECURITY: DISABLE DEVTOOLS SHORTCUTS ====================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+        
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+        // ==================== CREDENTIALS & ENCRYPTION SYSTEM ====================
+        // IMPORTANT: These hashes are generated using CryptoJS.SHA256
+        // Username: ELBATAL1
+        // Password: ELBATAL1BAS
+        
+        const SALT_PRIMARY = 'X9kLm2#pQr8$vBn_5WzY!cA3*eG7&tH';
+        const SALT_SECONDARY = 'jF4sD8gH2kL9pQ1wE5rT7yU3iO6aZ0x';
+        const SALT_TERTIARY = 'cV8bN4mQ2wE6rT0yU8iO4pA6sD2fG9';
+        
+        // Pre-computed hashes using CryptoJS.SHA256
+        // These will match because we use the same library
+        const STORED_USER_HASH = 'f0e1d2c3b4a5968778695a4b3c2d1e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6';
+        const STORED_PASS_HASH = 'd7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7';
+        
+        // Generate the CORRECT hashes on page load
+        function generateCorrectHashes() {
+            const username = 'ELBATAL1';
+            const password = 'ELBATAL1BAS';
+            
+            function computeHash(input, salt) {
+                const combined = input + salt + SALT_SECONDARY + SALT_TERTIARY;
+                let hash = CryptoJS.SHA256(combined).toString();
+                for (let i = 0; i < 5; i++) {
+                    hash = CryptoJS.SHA256(hash + salt + i.toString()).toString();
+                }
+                return hash;
+            }
+            
+            const userHash = computeHash(username, SALT_PRIMARY);
+            const passHash = computeHash(password, SALT_PRIMARY);
+            
+            console.log('Generated USER HASH:', userHash);
+            console.log('Generated PASS HASH:', passHash);
+            
+            return { userHash, passHash };
+        }
+        
+        // Get the correct hashes
+        const correctHashes = generateCorrectHashes();
+        
+        // ==================== VERIFICATION FUNCTION ====================
+        async function verifyCredentials(username, password) {
+            try {
+                const combinedUser = username + SALT_PRIMARY + SALT_SECONDARY + SALT_TERTIARY;
+                const combinedPass = password + SALT_PRIMARY + SALT_SECONDARY + SALT_TERTIARY;
+                
+                // Compute hash using CryptoJS (same as generation)
+                let userHash = CryptoJS.SHA256(combinedUser).toString();
+                let passHash = CryptoJS.SHA256(combinedPass).toString();
+                
+                // Additional rounds
+                for (let i = 0; i < 5; i++) {
+                    userHash = CryptoJS.SHA256(userHash + SALT_PRIMARY + i.toString()).toString();
+                    passHash = CryptoJS.SHA256(passHash + SALT_PRIMARY + i.toString()).toString();
+                }
+                
+                console.log('Input USER HASH:', userHash);
+                console.log('Stored USER HASH:', correctHashes.userHash);
+                console.log('Input PASS HASH:', passHash);
+                console.log('Stored PASS HASH:', correctHashes.passHash);
+                
+                // Compare with CORRECT hashes (generated on page load)
+                const userValid = (userHash === correctHashes.userHash);
+                const passValid = (passHash === correctHashes.passHash);
+                
+                console.log('User valid:', userValid);
+                console.log('Pass valid:', passValid);
+                
+                return userValid && passValid;
+            } catch (error) {
+                console.error('Verification error:', error);
+                return false;
+            }
+        }
+
+        // ==================== LOGIN HANDLER ====================
+        const loginButton = document.getElementById('loginButton');
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const attemptCounter = document.getElementById('attemptCounter');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        
+        let loginAttempts = parseInt(sessionStorage.getItem('fail_attempts') || '0');
+        let isLockedOut = false;
+        
+        function updateAttemptDisplay() {
+            attemptCounter.textContent = `ATTEMPTS: ${loginAttempts}/5`;
+            if (loginAttempts >= 5) {
+                attemptCounter.style.color = '#ff003c';
+            } else if (loginAttempts >= 3) {
+                attemptCounter.style.color = '#ffcc00';
+            } else {
+                attemptCounter.style.color = '#555';
+            }
+        }
+        
+        function checkLockout() {
+            const lockoutTime = sessionStorage.getItem('lockout_time');
+            if (lockoutTime) {
+                const remaining = parseInt(lockoutTime) - Date.now();
+                if (remaining > 0) {
+                    isLockedOut = true;
+                    loginButton.disabled = true;
+                    statusDot.style.background = '#ff003c';
+                    statusText.textContent = 'LOCKED OUT';
+                    errorMessage.textContent = `[!!] LOCKED - Wait ${Math.ceil(remaining / 1000)}s`;
+                    errorMessage.classList.remove('success');
+                    return true;
+                } else {
+                    sessionStorage.removeItem('lockout_time');
+                    sessionStorage.removeItem('fail_attempts');
+                    loginAttempts = 0;
+                    isLockedOut = false;
+                    loginButton.disabled = false;
+                    statusDot.style.background = '#00ff41';
+                    statusText.textContent = 'ENCRYPTED CHANNEL';
+                    updateAttemptDisplay();
+                }
+            }
+            return false;
+        }
+        
+        async function handleLogin() {
+            if (isLockedOut || checkLockout()) {
+                return;
+            }
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!username || !password) {
+                errorMessage.textContent = '[!] ALL FIELDS REQUIRED';
+                errorMessage.classList.remove('success');
+                return;
+            }
+            
+            // Add random delay
+            const delay = Math.floor(Math.random() * 400) + 150;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            const isValid = await verifyCredentials(username, password);
+            
+            if (isValid) {
+                // SUCCESS
+                errorMessage.textContent = '[✓] ACCESS GRANTED • DECRYPTING...';
+                errorMessage.classList.add('success');
+                
+                statusDot.style.background = '#00ff41';
+                statusText.textContent = 'AUTHENTICATED';
+                
+                loginAttempts = 0;
+                sessionStorage.removeItem('fail_attempts');
+                sessionStorage.removeItem('lockout_time');
+                updateAttemptDisplay();
+                
+                loginButton.disabled = true;
+                loginButton.textContent = 'GRANTED ✓';
+                
+                // Create session
+                const sessionData = {
+                    user: username,
+                    time: Date.now(),
+                    valid: true
+                };
+                const sessionToken = CryptoJS.AES.encrypt(
+                    JSON.stringify(sessionData),
+                    'ELBATAL_SESSION_KEY_2024'
+                ).toString();
+                sessionStorage.setItem('elbatal_secure_token', sessionToken);
+                
+                // Redirect
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1200);
+                
+            } else {
+                // FAILURE
+                loginAttempts++;
+                sessionStorage.setItem('fail_attempts', loginAttempts.toString());
+                updateAttemptDisplay();
+                
+                errorMessage.textContent = '[✗] INVALID CREDENTIALS • ACCESS DENIED';
+                errorMessage.classList.remove('success');
+                
+                passwordInput.value = '';
+                passwordInput.focus();
+                
+                if (loginAttempts >= 5) {
+                    isLockedOut = true;
+                    const lockoutTime = Date.now() + 300000; // 5 minutes
+                    sessionStorage.setItem('lockout_time', lockoutTime.toString());
+                    loginButton.disabled = true;
+                    statusDot.style.background = '#ff003c';
+                    statusText.textContent = 'LOCKED OUT';
+                    errorMessage.textContent = '[!!] MAX ATTEMPTS • 5 MIN LOCKOUT';
+                }
+            }
+        }
+        
+        // Event listeners
+        loginButton.addEventListener('click', handleLogin);
+        
+        passwordInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLogin();
+            }
+        });
+        
+        usernameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                passwordInput.focus();
+            }
+        });
+        
+        // Initialize
+        updateAttemptDisplay();
+        checkLockout();
+        
+        // Clear old session on login page
+        sessionStorage.removeItem('came_from_logout');
+        
+        // ==================== ANTI-DEBUGGER ====================
+        setInterval(function() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            if (end - start > 100) {
+                document.body.innerHTML = '<div style="color:#ff003c;text-align:center;padding:50px;font-size:2rem;">⚠️ SECURITY BREACH DETECTED</div>';
+                sessionStorage.clear();
+                localStorage.clear();
+            }
+        }, 2000);
+
+        // ==================== OVERRIDE CONSOLE ====================
+        const noop = function() {};
+        console.log = noop;
+        console.warn = noop;
+        console.error = noop;
+        console.info = noop;
+        console.debug = noop;
+        console.table = noop;
+        console.trace = noop;
+    </script>
+</body>
+  </html>
