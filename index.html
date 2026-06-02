@@ -1,0 +1,79 @@
+
+# Create the main project directory
+import os
+
+project_dir = "/mnt/agents/output/ELBATAL"
+os.makedirs(project_dir, exist_ok=True)
+
+# File 1: index.html (Login Page - Main Entry)
+index_html = '''<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELBATAL // SYSTEM ACCESS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="matrix-bg" id="matrixCanvas"></div>
+    <div class="scanline"></div>
+    <div class="vignette"></div>
+    
+    <div class="container">
+        <div class="login-box">
+            <div class="glitch-wrapper">
+                <h1 class="glitch" data-text="ELBATAL">ELBATAL</h1>
+            </div>
+            <div class="subtitle">[ SECURE TERMINAL ACCESS ]</div>
+            
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                    <span class="title">root@elbatal:~# secure_login</span>
+                </div>
+                <div class="terminal-body">
+                    <div id="typing-text"></div>
+                    <form id="loginForm" class="login-form">
+                        <div class="input-group">
+                            <span class="prompt">user@elbatal:~$</span>
+                            <input type="text" id="username" placeholder="Enter username..." autocomplete="off">
+                        </div>
+                        <div class="input-group">
+                            <span class="prompt">pass@elbatal:~$</span>
+                            <input type="password" id="password" placeholder="Enter password..." autocomplete="off">
+                            <span class="toggle-pass" onclick="togglePassword()">👁</span>
+                        </div>
+                        <button type="submit" class="hack-btn">
+                            <span class="btn-text">EXECUTE_LOGIN</span>
+                            <span class="btn-glitch">ACCESS_DENIED</span>
+                        </button>
+                    </form>
+                    <div id="error-msg" class="error-msg"></div>
+                </div>
+            </div>
+            
+            <div class="security-status">
+                <span class="status-indicator"></span>
+                <span>ENCRYPTION: AES-256 // FIREWALL: ACTIVE</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="corner-decorations">
+        <div class="corner top-left">◢</div>
+        <div class="corner top-right">◣</div>
+        <div class="corner bottom-left">◥</div>
+        <div class="corner bottom-right">◤</div>
+    </div>
+    
+    <script src="auth.js"></script>
+    <script src="effects.js"></script>
+</body>
+</html>'''
+
+with open(f"{project_dir}/index.html", "w", encoding="utf-8") as f:
+    f.write(index_html)
+
+print("✅ index.html created (Login Page)")
